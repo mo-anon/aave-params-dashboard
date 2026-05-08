@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+*.local
+.vscode
+.idea
+
+# TS composite-project emit (we only want sources in git)
+*.tsbuildinfo
+.tsbuild/
+vite.config.js
+vite.config.d.ts
