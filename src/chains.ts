@@ -20,6 +20,23 @@ export type Deployment = {
   defaultRpc: string | null;
 };
 
+// Horizon is a separate, licensed Aave instance (v3.3 fork) for permissioned RWA
+// collateral. It deliberately ships *without* a RiskSteward — parameter changes
+// happen via the standard PoolConfigurator path under Aave Labs (executive role)
+// and Aave DAO (operational role). So no bounds / cooldowns / restriction list
+// to read; the dashboard shows the live config straight from the pool.
+export type HorizonDeployment = {
+  name: string;
+  chainId: number;
+  pool: `0x${string}`;
+  poolConfigurator: `0x${string}`;
+  aclManager: `0x${string}`;
+  aclAdmin: `0x${string}`;
+  multicall3: `0x${string}`;
+  explorer: string | null;
+  defaultRpc: string | null;
+};
+
 const CANONICAL_MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11" as const;
 
 const RISK_COUNCIL_ETHEREUM = "0x47c71dFEB55Ebaa431Ae3fbF99Ea50e0D3d30fA8" as const;
@@ -197,8 +214,27 @@ export const DEPLOYMENTS: Deployment[] = [
   },
 ];
 
+// Aave Horizon deployments. Only Ethereum mainnet for now (only deployment that
+// exists). Addresses sourced from bgd-labs/aave-address-book → AaveV3EthereumHorizon.sol.
+export const HORIZON_DEPLOYMENTS: HorizonDeployment[] = [
+  {
+    name: "AaveV3EthereumHorizon",
+    chainId: 1,
+    pool: "0xAe05Cd22df81871bc7cC2a04BeCfb516bFe332C8",
+    poolConfigurator: "0x83Cb1B4af26EEf6463aC20AFbAC9c0e2E017202F",
+    aclManager: "0xEFD5df7b87d2dCe6DD454b4240b3e0A4db562321",
+    aclAdmin: "0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A",
+    multicall3: CANONICAL_MULTICALL3,
+    explorer: "https://etherscan.io/",
+    defaultRpc: "https://eth.drpc.org",
+  },
+];
+
 // Match curvefi/curve-frontend's `scanAddressPath` join: explorer URLs are stored
 // with a trailing slash, so we just append `address/<hash>` directly (no extra slash).
-export function explorerAddressUrl(d: Deployment, address: string): string | null {
+export function explorerAddressUrl(
+  d: { explorer: string | null },
+  address: string,
+): string | null {
   return d.explorer ? `${d.explorer}address/${address}` : null;
 }

@@ -15,8 +15,14 @@ export type ReserveConfig = {
   active: boolean;
   frozen: boolean;
   paused: boolean;
+  borrowEnabled: boolean;
+  borrowableInIsolation: boolean;
+  siloed: boolean;
+  flashloanable: boolean;
+  reserveFactor: bigint;    // bps
   borrowCap: bigint;        // whole tokens (no decimals)
   supplyCap: bigint;        // whole tokens
+  liqProtocolFee: bigint;   // bps
   debtCeiling: bigint;      // 8-decimal scaled (DEBT_CEILING_DECIMALS = 2)
 };
 
@@ -28,9 +34,15 @@ export function decodeReserveConfig(data: bigint): ReserveConfig {
     decimals: (data >> 48n) & MASK_8,
     active: ((data >> 56n) & 1n) === 1n,
     frozen: ((data >> 57n) & 1n) === 1n,
+    borrowEnabled: ((data >> 58n) & 1n) === 1n,
     paused: ((data >> 60n) & 1n) === 1n,
+    borrowableInIsolation: ((data >> 61n) & 1n) === 1n,
+    siloed: ((data >> 62n) & 1n) === 1n,
+    flashloanable: ((data >> 63n) & 1n) === 1n,
+    reserveFactor: (data >> 64n) & MASK_16,
     borrowCap: (data >> 80n) & MASK_36,
     supplyCap: (data >> 116n) & MASK_36,
+    liqProtocolFee: (data >> 152n) & MASK_16,
     debtCeiling: (data >> 212n) & MASK_40,
   };
 }
