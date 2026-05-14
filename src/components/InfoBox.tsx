@@ -27,10 +27,15 @@ export function InfoBox({ market }: { market: Market }) {
           {open ? "[-]" : "[+]"}
         </span>
         <strong style={{ fontSize: 13 }}>
-          # about — {market === "v3" ? "steward updates, bounds & cooldowns" : "Horizon RWA instance"}
+          # about —{" "}
+          {market === "v3"
+            ? "steward updates, bounds & cooldowns"
+            : market === "horizon"
+              ? "Horizon RWA instance"
+              : "V4 hub/spoke architecture"}
         </strong>
       </header>
-      {open && (market === "v3" ? <V3About /> : <HorizonAbout />)}
+      {open && (market === "v3" ? <V3About /> : market === "horizon" ? <HorizonAbout /> : <V4About />)}
     </section>
   );
 }
@@ -217,6 +222,117 @@ function HorizonAbout() {
       </p>
     </div>
   );
+}
+
+function V4About() {
+  return (
+    <div style={{ padding: "12px 14px", fontSize: 13, lineHeight: 1.55 }}>
+      <p style={{ margin: "0 0 10px" }}>
+        <strong>Aave V4</strong> replaces the V3 monolithic <code>Pool</code> with a{" "}
+        <strong>Hub / Spoke</strong> architecture: liquidity is centralised in <em>hubs</em>{" "}
+        and consumed by <em>spokes</em> that define isolated risk surfaces over specific
+        asset universes. There is one V4 deployment so far — Ethereum mainnet — with three
+        hubs and ten spokes.
+      </p>
+
+      <h4 style={hStyle}>hubs (liquidity sources)</h4>
+      <ul style={ulStyle}>
+        <li>
+          <span className="badge" style={badge("#dfeacc", "#3c5a16", "#b6cfa0")}>CORE</span> —
+          the main liquidity hub. Broadly accessible, feeds most spokes (Main, Forex, Gold,
+          Lombard BTC, EtherFi, Kelp, Lido…).
+        </li>
+        <li>
+          <span className="badge" style={badge("#e4dcef", "#4a2a6f", "#c2a8d4")}>PLUS</span>{" "}
+          — higher-yield / higher-risk hub powering the Ethena spokes.
+        </li>
+        <li>
+          <span className="badge" style={badge("#dbe7f0", "#1f4a6a", "#a0c0d4")}>PRIME</span>{" "}
+          — bluechip-only conservative hub backing the Bluechip spoke.
+        </li>
+      </ul>
+      <p style={{ margin: "6px 0 0" }} className="dim">
+        A single spoke can route different reserves through different hubs. The{" "}
+        <code>hub</code> column in the table is per-reserve and is the ground truth — the
+        primary-hub label on the spoke selector is just navigation.
+      </p>
+
+      <h4 style={hStyle}>spoke reserve fields</h4>
+      <ul style={ulStyle}>
+        <li>
+          <code>CF</code> — collateral factor (bps). Fraction of an asset's value usable as
+          collateral. Lives on <code>DynamicReserveConfig</code> keyed by the reserve's{" "}
+          <code>dynamicConfigKey</code>.
+        </li>
+        <li>
+          <code>maxLB</code> — maximum liquidation bonus over par, in bps. Raw value{" "}
+          <code>10_000</code> means 0% bonus; everything shown is the excess over par. Pairs
+          with the spoke-wide <code>liquidationBonusFactor</code> to determine the actual
+          bonus a liquidator receives at any given health factor.
+        </li>
+        <li>
+          <code>liqFee</code> — protocol cut on liquidations (bps), deducted from the bonus.
+        </li>
+        <li>
+          <code>collatRisk</code> — per-asset risk weight (bps) — surcharge applied to debt
+          when this asset is used as collateral.
+        </li>
+        <li>
+          <code>supplied</code> / <code>totalDebt</code> — live token amounts on the reserve
+          (in underlying units).
+        </li>
+      </ul>
+
+      <h4 style={hStyle}>spoke-wide liquidation config</h4>
+      <p style={{ margin: "0" }}>
+        Each spoke exposes a <code>LiquidationConfig</code> shown in the table header:
+        <code> targetHF</code> (WAD — desired post-liquidation health factor),{" "}
+        <code>hf_for_maxBonus</code> (WAD — HF at or below which the bonus saturates), and{" "}
+        <code>liqBonusFactor</code> (bps — multiplied by <code>maxLB</code> for the minimum
+        bonus floor).
+      </p>
+
+      <h4 style={hStyle}>flags</h4>
+      <ul style={ulStyle}>
+        <li>
+          <span className="badge err">paused</span> — every action on the reserve reverts.
+        </li>
+        <li>
+          <span className="badge warn">frozen</span> — supply / borrow disabled; repay /
+          withdraw still allowed.
+        </li>
+        <li>
+          <span className="badge muted">no-borrow</span> — reserve isn't borrowable
+          (collateral-only).
+        </li>
+        <li>
+          <span className="badge muted">no-shares</span> — liquidators receive the underlying
+          asset, never share tokens.
+        </li>
+      </ul>
+
+      <h4 style={hStyle}>governance — no RiskSteward</h4>
+      <p style={{ margin: "0" }}>
+        V4 governance routes through an <code>AccessManagerEnumerable</code> instead of the
+        V3 <code>ACLManager</code>. Parameter moves go through the spoke's{" "}
+        <code>SpokeConfigurator</code> /{" "}
+        <code>ConfigPositionManager</code>; there is no RiskSteward, so there are no
+        automated bounds or cooldowns to render. The table shows the current pool state.
+      </p>
+
+      <h4 style={hStyle}>data freshness</h4>
+      <p style={{ margin: "0" }}>
+        Live from your RPC — no caching, no backend. Three Multicall3 round-trips per fetch:
+        (1) reserve count + liquidation config + chain meta, (2) per-reserve{" "}
+        <code>getReserve</code> + <code>getReserveConfig</code> + supplied / debt totals,
+        (3) per-reserve <code>getDynamicReserveConfig</code> + ERC-20 metadata.
+      </p>
+    </div>
+  );
+}
+
+function badge(bg: string, fg: string, bd: string): React.CSSProperties {
+  return { background: bg, color: fg, borderColor: bd };
 }
 
 const hStyle: React.CSSProperties = {

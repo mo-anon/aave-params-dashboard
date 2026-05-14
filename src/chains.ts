@@ -214,6 +214,137 @@ export const DEPLOYMENTS: Deployment[] = [
   },
 ];
 
+// Aave V4 hub/spoke deployment. The architecture is fundamentally different from
+// V3: liquidity lives in *hubs* (CORE, PLUS, PRIME), and *spokes* are isolated
+// risk surfaces that consume liquidity from one or more hubs to list reserves
+// against specific underlying assets. A single spoke can route reserves through
+// multiple hubs (e.g. BLUECHIP_SPOKE has reserves routed through both PRIME_HUB
+// and CORE_HUB), so the per-reserve `hub` is the meaningful grouping.
+//
+// Param changes live on the spoke-side configurator (PoolConfigurator equivalent
+// — `ISpokeConfigurator`), governed by an `IAccessManagerEnumerable` instead of
+// the V3 ACLManager. Like Horizon, there is no RiskSteward to read bounds or
+// cooldowns from.
+
+export type V4HubName = "CORE" | "PLUS" | "PRIME";
+
+export type V4Hub = {
+  name: V4HubName;
+  address: `0x${string}`;
+};
+
+export type V4Spoke = {
+  name: string;
+  /** UI-friendly label, e.g. "Main". `name` is the qualified identifier. */
+  label: string;
+  /** Hub the spoke was *deployed for* (its primary listing). Reserves can still
+   *  route through other hubs — read the per-reserve hub field for ground truth. */
+  primaryHub: V4HubName;
+  address: `0x${string}`;
+  oracle: `0x${string}` | null;
+};
+
+export type V4Deployment = {
+  name: string;
+  chainId: number;
+  accessManager: `0x${string}`;
+  hubs: V4Hub[];
+  spokes: V4Spoke[];
+  multicall3: `0x${string}`;
+  explorer: string | null;
+  defaultRpc: string | null;
+};
+
+export const V4_DEPLOYMENTS: V4Deployment[] = [
+  {
+    name: "AaveV4Ethereum",
+    chainId: 1,
+    accessManager: "0x08aE3BE30958cDd1847ec58fFfd4C451a87fDF01",
+    hubs: [
+      { name: "CORE", address: "0xCca852Bc40e560adC3b1Cc58CA5b55638ce826c9" },
+      { name: "PLUS", address: "0x06002e9c4412CB7814a791eA3666D905871E536A" },
+      { name: "PRIME", address: "0x943827DCA022D0F354a8a8c332dA1e5Eb9f9F931" },
+    ],
+    // Primary-hub mapping derived from `getReserve(0).hub` on each spoke; spokes
+    // serving multiple hubs are filed under the hub their first reserve points at.
+    spokes: [
+      {
+        name: "MainSpoke",
+        label: "Main",
+        primaryHub: "CORE",
+        address: "0x94e7A5dCbE816e498b89aB752661904E2F56c485",
+        oracle: "0xfdc7Ed14B6F30aD1c8A4D9d1C5e9eC9C8B6Bf9F4",
+      },
+      {
+        name: "BluechipSpoke",
+        label: "Bluechip",
+        primaryHub: "PRIME",
+        address: "0x973a023A77420ba610f06b3858aD991Df6d85A08",
+        oracle: null,
+      },
+      {
+        name: "ForexSpoke",
+        label: "Forex",
+        primaryHub: "CORE",
+        address: "0xD8B93635b8C6d0fF98CbE90b5988E3F2d1Cd9da1",
+        oracle: null,
+      },
+      {
+        name: "GoldSpoke",
+        label: "Gold",
+        primaryHub: "CORE",
+        address: "0x65407b940966954b23dfA3caA5C0702bB42984DC",
+        oracle: null,
+      },
+      {
+        name: "LombardBtcSpoke",
+        label: "Lombard BTC",
+        primaryHub: "CORE",
+        address: "0x7EC68b5695e803e98a21a9A05d744F28b0a7753D",
+        oracle: null,
+      },
+      {
+        name: "EthenaCorrelatedSpoke",
+        label: "Ethena (correlated)",
+        primaryHub: "PLUS",
+        address: "0x58131E79531caB1d52301228d1f7b842F26B9649",
+        oracle: null,
+      },
+      {
+        name: "EthenaEcosystemSpoke",
+        label: "Ethena (ecosystem)",
+        primaryHub: "PLUS",
+        address: "0xba1B3D55D249692b669A164024A838309B7508AF",
+        oracle: null,
+      },
+      {
+        name: "EtherFiESpoke",
+        label: "EtherFi",
+        primaryHub: "CORE",
+        address: "0xbF10BDfE177dE0336aFD7fcCF80A904E15386219",
+        oracle: null,
+      },
+      {
+        name: "KelpESpoke",
+        label: "Kelp",
+        primaryHub: "CORE",
+        address: "0x3131FE68C4722e726fe6B2819ED68e514395B9a4",
+        oracle: null,
+      },
+      {
+        name: "LidoESpoke",
+        label: "Lido",
+        primaryHub: "CORE",
+        address: "0xe1900480ac69f0B296841Cd01cC37546d92F35Cd",
+        oracle: null,
+      },
+    ],
+    multicall3: CANONICAL_MULTICALL3,
+    explorer: "https://etherscan.io/",
+    defaultRpc: "https://eth.drpc.org",
+  },
+];
+
 // Aave Horizon deployments. Only Ethereum mainnet for now (only deployment that
 // exists). Addresses sourced from bgd-labs/aave-address-book → AaveV3EthereumHorizon.sol.
 export const HORIZON_DEPLOYMENTS: HorizonDeployment[] = [

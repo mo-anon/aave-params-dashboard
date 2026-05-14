@@ -1,7 +1,8 @@
 import aaveTokenRound from "../assets/aave-token-round.svg";
 import aaveHorizon from "../assets/aave-horizon.svg";
+import aaveV4 from "../assets/aave-v4.svg";
 
-export type Market = "v3" | "horizon";
+export type Market = "v3" | "horizon" | "v4";
 
 type Props = {
   selected: Market;
@@ -21,6 +22,12 @@ const TABS: { id: Market; label: string; hint: string; iconSrc: string }[] = [
     label: "Horizon",
     hint: "permissioned RWA instance on Ethereum (v3.3 fork). No RiskSteward — params change via PoolConfigurator under Aave Labs / Aave DAO roles.",
     iconSrc: aaveHorizon,
+  },
+  {
+    id: "v4",
+    label: "AaveV4",
+    hint: "modular Hub/Spoke architecture: liquidity hubs (CORE / PLUS / PRIME) feed isolated risk surfaces (spokes). Governed via AccessManager — no RiskSteward.",
+    iconSrc: aaveV4,
   },
 ];
 
